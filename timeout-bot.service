@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=cronrunner
 WorkingDirectory=/home/cronrunner/timeout-bot
-ExecStart=/bin/bash -c 'source /home/cronrunner/timeout-bot/venv/bin/activate && source /home/cronrunner/timeout-bot/credentials/timeout-bot.conf && exec python bot.py --token "$DISCORD_TOKEN" --cooldown-channel "$COOLDOWN_CHANNEL_ID" --cooldown-role "$COOLDOWN_ROLE_ID"'
+ExecStart=/bin/bash -c 'source /home/cronrunner/timeout-bot/venv/bin/activate && source /home/cronrunner/credentials/timeout-bot.conf && exec python bot.py --token "$DISCORD_TOKEN" --cooldown-channel "$CHANNEL_ID" --cooldown-role "$COOLDOWN_ROLE_ID"'
 Restart=always
 RestartSec=5
 

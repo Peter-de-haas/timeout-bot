@@ -1,20 +1,14 @@
+import os
 import discord
 from discord import app_commands
 from discord.ext import commands
 import asyncio
-import argparse
 import re
 
-# ---- Parse CLI arguments ----
-parser = argparse.ArgumentParser()
-parser.add_argument("--token", required=True)
-parser.add_argument("--cooldown-channel", required=True)
-parser.add_argument("--cooldown-role", required=True)
-args = parser.parse_args()
-
-TOKEN = args.token
-COOLDOWN_CHANNEL_ID = int(args.cooldown_channel)
-COOLDOWN_ROLE_ID = int(args.cooldown_role)
+# ---- Load credentials from environment ----
+TOKEN = os.getenv("DISCORD_TOKEN")
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+COOLDOWN_ROLE_ID = int(os.getenv("COOLDOWN_ROLE_ID"))
 
 # ---- Intents ----
 intents = discord.Intents.default()  # no privileged intents
@@ -77,7 +71,7 @@ async def timeout(interaction: discord.Interaction, member: discord.Member, dura
 
     msg = f"{member.mention} has been put in cooldown for {seconds//60} minutes."
     if skipped_roles:
-        msg += f"\n⚠️ Could not modify roles: {', '.join(skipped_roles)}"
+        msg += f"\n⚠ Could not modify roles: {', '.join(skipped_roles)}"
     await interaction.response.send_message(msg)
 
     # Wait for duration
