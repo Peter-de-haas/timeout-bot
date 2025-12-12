@@ -8,5 +8,7 @@ discordbot that times people out and grants them access to a specific cooling do
 > send me the channel id.
 > create cooldown role.
 > send me role id.
-> ???
-> use /timeout @username to time a user out
+> use "/timeout". it will promp you for:
+>    member="User to timeout",
+>    duration="Duration (e.g., 10m, 1h). Defaults to 1h"
+> ??? profit

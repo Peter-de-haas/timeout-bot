@@ -1,0 +1,13 @@
+[Unit]
+Description=Timeout Bot for Discord
+After=network.target
+
+[Service]
+User=cronrunner
+WorkingDirectory=/home/cronrunner/timeout-bot
+ExecStart=/bin/bash -c 'source venv/bin/activate && exec python bot.py --token "$DISCORD_TOKEN" --cooldown-channel 1449151842100707409 --cooldown-role 1449151583245041775'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
