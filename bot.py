@@ -40,18 +40,18 @@ def parse_duration(tijd: str) -> int:
 # ---- Self-timeout command ----
 @tree.command(
     name="kleurplaat",
-    description="Ik wil naar de kleurhoek"
+    description="Ik wil naar de kleurhoek."
 )
 @app_commands.describe(
-    tijd="Tijd om te kleuren(bijv. 10m, 1h). Standaard 15 minuten"
+    tijd="Tijd om te kleuren (bijv. 10m, 1h) Standaard 15m."
 )
 async def kleurplaat(
     interaction: discord.Interaction,
-    tijd: str = "15m" # Defaults to 15 minutes
+    tijd: str = "15m"  # Default to 15 minutes
 ):
     if interaction.guild is None:
         await interaction.response.send_message(
-            "LALALALA IK LUISTER HIER NIET.",
+            "LALALALALALALA IK LUISTER HIER NIET.",
             ephemeral=True
         )
         return
@@ -63,7 +63,7 @@ async def kleurplaat(
 
     if cooldown_role is None:
         await interaction.response.send_message(
-            "Cooldown role not found.",
+            "Kleurplaat kanaal rol niet gevonden.",
             ephemeral=True
         )
         return
@@ -78,58 +78,63 @@ async def kleurplaat(
         )
         return
 
-    # Roles the bot is allowed to manage
-    removable_roles = [
-        role for role in member.roles
-        if role.id != guild.id
-        and role != cooldown_role
-        and role < bot_member.top_role
-    ]
+    # Determine which roles are removable
+    removable_roles = []
+    skipped_roles = []
+
+    for role in member.roles:
+        if role == guild.default_role or role == cooldown_role:
+            continue
+        if role < bot_member.top_role:
+            removable_roles.append(role)
+        else:
+            skipped_roles.append(role.name)
 
     role_backup[member.id] = [r.id for r in removable_roles]
 
-    # Remove roles
-    for role in removable_roles:
-        await member.remove_roles(role)
+    # Remove removable roles
+    if removable_roles:
+        await member.remove_roles(*removable_roles)
 
-    # Add cooldown role
+    # Add cooldown role if bot can manage it
     if cooldown_role < bot_member.top_role:
         await member.add_roles(cooldown_role)
     else:
-        await interaction.response.send_message(
-            "Cooldown role is above the bot's role.",
-            ephemeral=True
-        )
-        return
+        skipped_roles.append(cooldown_role.name)
 
-    await interaction.response.send_message(
-        f"🖍️ Lekker kleuren voor {seconds // 60} minuten."
-    )
+    msg = f"🖍️ Je bent aan het kleuren voor {seconds // 60} minutes."
+    if skipped_roles:
+        msg += f"\n⚠ Could not modify roles: {', '.join(skipped_roles)}"
+
+    await interaction.response.send_message(msg)
 
     # Wait for duration
     await asyncio.sleep(seconds)
 
     # Restore roles safely
+    restored_roles = []
     if member.id in role_backup:
         restored_ids = role_backup.pop(member.id)
-        restored_roles = [
-            guild.get_role(rid)
-            for rid in restored_ids
-            if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
-        ]
+        for rid in restored_ids:
+            role = guild.get_role(rid)
+            if role and role < bot_member.top_role:
+                restored_roles.append(role)
 
+    # Remove cooldown role if manageable
+    if cooldown_role < bot_member.top_role:
         await member.remove_roles(cooldown_role)
-        for role in restored_roles:
-            await member.add_roles(role)
 
-        await interaction.followup.send(
-            "🖍️ Is je kleurplaat klaar?"
-        )
+    if restored_roles:
+        await member.add_roles(*restored_roles)
+
+    await interaction.followup.send(
+        "🖍️ Jouw Kleur tijd is afgelopen."
+    )
 
 # ---- Early release command ----
 @tree.command(
     name="klaar",
-    description="Ik ben klaar met kleuren."
+    description="Ik wil stoppen met kleuren."
 )
 async def klaar(interaction: discord.Interaction):
     member = interaction.user
@@ -138,7 +143,7 @@ async def klaar(interaction: discord.Interaction):
 
     if interaction.guild is None:
         await interaction.response.send_message(
-            "LALALALALA IK LUISTER HIER NIET.",
+            "LALALALALALALA IK LUISTER HIER NIET.",
             ephemeral=True
         )
         return
@@ -146,34 +151,30 @@ async def klaar(interaction: discord.Interaction):
     cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
     if cooldown_role not in member.roles:
         await interaction.response.send_message(
-            "Je bent helemaal niet aan het kleuren",
+            "Je bent helemaal niet aan het kleuren.",
             ephemeral=True
         )
         return
 
     # Restore roles safely
+    restored_roles = []
     if member.id in role_backup:
         restored_ids = role_backup.pop(member.id)
-        restored_roles = [
-            guild.get_role(rid)
-            for rid in restored_ids
-            if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
-        ]
+        for rid in restored_ids:
+            role = guild.get_role(rid)
+            if role and role < bot_member.top_role:
+                restored_roles.append(role)
 
-        # Remove cooldown role and restore roles
+    # Remove cooldown role if manageable
+    if cooldown_role < bot_member.top_role:
         await member.remove_roles(cooldown_role)
-        for role in restored_roles:
-            await member.add_roles(role)
 
-        await interaction.response.send_message(
-            "🖍️ Jouw kleurtijd is ten einde."
-        )
-    else:
-        # Fallback if no backup exists
-        await interaction.response.send_message(
-            "Er zijn geen rollen om terug te zetten (Backup is leeg). @149277843015204864 er is iets mis gegaan in het terugzetten. Iemand heeft niet alles terug gekregen",
-            ephemeral=True
-        )
+    if restored_roles:
+        await member.add_roles(*restored_roles)
+
+    await interaction.response.send_message(
+        "🖍️ Jouw Kleur tijd is vervroegd afgelopen."
+    )
 
 # ---- Bot Ready ----
 @bot.event
