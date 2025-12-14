@@ -40,19 +40,18 @@ def parse_duration(duration: str) -> int:
 # ---- Self-timeout command ----
 @tree.command(
     name="kleurplaat",
-    description="Ik wil kleuren"
+    description="Ik wil naar de kleurhoek"
 )
 @app_commands.describe(
-    duration="Lengte van kleurtijd, 15m = een kwartier, 1h = 1 uur. standaard = 15 minuten"
+    duration="Kleurtijd (voorbeeld: 10m, 1h). standaard 15 minuten"
 )
 async def kleurplaat(
     interaction: discord.Interaction,
     duration: str = "15m"
 ):
-    # Must be used in a server
     if interaction.guild is None:
         await interaction.response.send_message(
-            "Ik luister alleen in Tems. Ga weg!",
+            "LALALALA IK LUISTER HIER NIET.",
             ephemeral=True
         )
         return
@@ -60,8 +59,8 @@ async def kleurplaat(
     member = interaction.user
     guild = interaction.guild
     bot_member = guild.me
-
     cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
+
     if cooldown_role is None:
         await interaction.response.send_message(
             "Cooldown role not found.",
@@ -104,7 +103,7 @@ async def kleurplaat(
         return
 
     await interaction.response.send_message(
-        f"🖍️ Lekker kleuren voor {seconds // 60} minuten."
+        f"🖍️ Lekker Kleuren voor {seconds // 60} minutes."
     )
 
     # Wait for duration
@@ -116,8 +115,7 @@ async def kleurplaat(
         restored_roles = [
             guild.get_role(rid)
             for rid in restored_ids
-            if guild.get_role(rid)
-            and guild.get_role(rid) < bot_member.top_role
+            if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
         ]
 
         await member.remove_roles(cooldown_role)
@@ -126,6 +124,55 @@ async def kleurplaat(
 
         await interaction.followup.send(
             "🖍️ Is je kleurplaat klaar?"
+        )
+
+# ---- Early release command ----
+@tree.command(
+    name="klaar",
+    description="Ik ben klaar met kleuren."
+)
+async def klaar(interaction: discord.Interaction):
+    member = interaction.user
+    guild = interaction.guild
+    bot_member = guild.me
+
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "LALALALALA IK LUISTER HIER NIET.",
+            ephemeral=True
+        )
+        return
+
+    cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
+    if cooldown_role not in member.roles:
+        await interaction.response.send_message(
+            "Je bent helemaal niet aan het kleuren",
+            ephemeral=True
+        )
+        return
+
+    # Restore roles safely
+    if member.id in role_backup:
+        restored_ids = role_backup.pop(member.id)
+        restored_roles = [
+            guild.get_role(rid)
+            for rid in restored_ids
+            if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
+        ]
+
+        # Remove cooldown role and restore roles
+        await member.remove_roles(cooldown_role)
+        for role in restored_roles:
+            await member.add_roles(role)
+
+        await interaction.response.send_message(
+            "🖍️ Jou kleurtijd is ten einde."
+        )
+    else:
+        # Fallback if no backup exists
+        await interaction.response.send_message(
+            "Er zijn geen rollen om terug te zetten (Backup is leeg).",
+            ephemeral=True
         )
 
 # ---- Bot Ready ----
