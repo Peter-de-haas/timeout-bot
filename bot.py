@@ -43,7 +43,7 @@ def parse_duration(duration: str) -> int:
     description="Ik wil naar de kleurhoek"
 )
 @app_commands.describe(
-    duration="Kleurtijd (voorbeeld: 10m, 1h). standaard 15 minuten"
+    duration="Kleurtijd (voorbeeld: 10m, 1h). Standaard 15 minuten"
 )
 async def kleurplaat(
     interaction: discord.Interaction,
@@ -73,7 +73,7 @@ async def kleurplaat(
     # Prevent stacking
     if cooldown_role in member.roles:
         await interaction.response.send_message(
-            "You are already in cooldown.",
+            "Je bent al aan het kleuren.",
             ephemeral=True
         )
         return
@@ -103,7 +103,7 @@ async def kleurplaat(
         return
 
     await interaction.response.send_message(
-        f"🖍️ Lekker Kleuren voor {seconds // 60} minuten."
+        f"🖍️ Lekker kleuren voor {seconds // 60} minuten."
     )
 
     # Wait for duration
@@ -166,12 +166,12 @@ async def klaar(interaction: discord.Interaction):
             await member.add_roles(role)
 
         await interaction.response.send_message(
-            "🖍️ Jou kleurtijd is ten einde."
+            "🖍️ Jouw kleurtijd is ten einde."
         )
     else:
         # Fallback if no backup exists
         await interaction.response.send_message(
-            "Er zijn geen rollen om terug te zetten (Backup is leeg).",
+            "Er zijn geen rollen om terug te zetten (Backup is leeg). @149277843015204864 er is iets mis gegaan in het terugzetten. Iemand heeft niet alles terug gekregen",
             ephemeral=True
         )
 
