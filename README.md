@@ -10,6 +10,6 @@ discordbot that times people out and grants them access to a specific cooling do
 - send me role id.
 - use "/timeout". it will promp you for:
 - -   member="User to timeout",
-- -   duration="Duration (e.g., 10m, 1h). Defaults to 1h"
+- -   duration="Duration (e.g., 10m, 1h). Defaults to 15m"
 - ???
 - profit

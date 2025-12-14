@@ -26,11 +26,11 @@ def parse_duration(duration: str) -> int:
     Parse durations like:
     - 10m
     - 1h
-    Defaults to 1h if invalid
+    Defaults to 15 minutes if invalid
     """
     match = re.fullmatch(r"(\d+)([mh]?)", duration.lower())
     if not match:
-        return 3600
+        return 900
 
     value, unit = match.groups()
     value = int(value)
