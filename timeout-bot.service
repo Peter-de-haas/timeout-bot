@@ -1,13 +1,24 @@
 [Unit]
-Description=Timeout Bot for Discord
+Description=Kleurplaat Bot for Discord
 After=network.target
 
 [Service]
 User=cronrunner
 WorkingDirectory=/home/cronrunner/timeout-bot
-ExecStart=/bin/bash -c 'source /home/cronrunner/timeout-bot/venv/bin/activate && source /home/cronrunner/credentials/timeout-bot.conf && exec python bot.py --token "$DISCORD_TOKEN" --cooldown-channel "$CHANNEL_ID" --cooldown-role "$COOLDOWN_ROLE_ID"'
+
+# Laad environment vars uit bestand
+EnvironmentFile=/home/cronrunner/credentials/timeout-bot.conf
+
+# Activeer virtuele omgeving en voer bot uit
+ExecStart=/bin/bash -c 'source /home/cronrunner/timeout-bot/venv/bin/activate && exec python bot.py'
+
+# Herstart bot bij crash
 Restart=always
 RestartSec=5
+
+# Logs naar journalctl
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
