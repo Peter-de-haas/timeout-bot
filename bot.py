@@ -61,7 +61,7 @@ load_timeouts()
     tijd="Tijd om te kleuren (bijv. 10m, 1h). Standaard 15m."
 )
 async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
-    await interaction.response.defer(ephemeral=True)  # minimale response zodat Discord geen fout geeft
+    await interaction.response.send_message(content="\u200b", ephemeral=True) #minimale response
 
     if interaction.guild is None:
         logging.warning(f"{interaction.user} probeerde /kleurplaat in DM te gebruiken")
@@ -143,7 +143,7 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
 # ---- Klaar command ----
 @tree.command(name="klaar", description="Ik wil stoppen met kleuren.")
 async def klaar(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.send_message(content="\u200b", ephemeral=True) #minimale response
 
     if interaction.guild is None:
         return
