@@ -21,14 +21,14 @@ tree = bot.tree
 role_backup = {}
 
 # ---- Duration parser ----
-def parse_duration(duration: str) -> int:
+def parse_duration(tijd: str) -> int:
     """
     Parse durations like:
     - 10m
     - 1h
     Defaults to 15 minutes if invalid
     """
-    match = re.fullmatch(r"(\d+)([mh]?)", duration.lower())
+    match = re.fullmatch(r"(\d+)([mh]?)", tijd.lower())
     if not match:
         return 15 * 60  # 15 minutes fallback
 
@@ -43,11 +43,11 @@ def parse_duration(duration: str) -> int:
     description="Ik wil naar de kleurhoek"
 )
 @app_commands.describe(
-    duration="Kleurtijd (voorbeeld: 10m, 1h). Standaard 15 minuten"
+    tijd="Tijd om te kleuren(bijv. 10m, 1h). Standaard 15 minuten"
 )
 async def kleurplaat(
     interaction: discord.Interaction,
-    duration: str = "15m"
+    tijd: str = "15m" # Defaults to 15 minutes
 ):
     if interaction.guild is None:
         await interaction.response.send_message(
@@ -68,7 +68,7 @@ async def kleurplaat(
         )
         return
 
-    seconds = parse_duration(duration)
+    seconds = parse_duration(tijd)
 
     # Prevent stacking
     if cooldown_role in member.roles:
