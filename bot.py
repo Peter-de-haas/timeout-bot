@@ -30,7 +30,7 @@ def parse_duration(duration: str) -> int:
     """
     match = re.fullmatch(r"(\d+)([mh]?)", duration.lower())
     if not match:
-        return 900
+        return 15 * 60  # 15 minutes fallback
 
     value, unit = match.groups()
     value = int(value)
@@ -38,18 +38,21 @@ def parse_duration(duration: str) -> int:
     return value * 60 if unit == "m" else value * 3600
 
 # ---- Self-timeout command ----
-@tree.command(name="timeout", description="Put yourself in cooldown")
-@app_commands.describe(
-    duration="Duration (e.g. 10m, 1h). Defaults to 15 minutes"
+@tree.command(
+    name="kleurplaat",
+    description="Ik wil kleuren"
 )
-async def timeout(
+@app_commands.describe(
+    duration="Lengte van kleurtijd, 15m = een kwartier, 1h = 1 uur. standaard = 15 minuten"
+)
+async def kleurplaat(
     interaction: discord.Interaction,
     duration: str = "15m"
 ):
     # Must be used in a server
     if interaction.guild is None:
         await interaction.response.send_message(
-            "This command can only be used in a server.",
+            "Ik luister alleen in Tems. Ga weg!",
             ephemeral=True
         )
         return
@@ -101,13 +104,13 @@ async def timeout(
         return
 
     await interaction.response.send_message(
-        f"🧊 You have put yourself in cooldown for {seconds // 60} minutes."
+        f"🖍️ Lekker kleuren voor {seconds // 60} minuten."
     )
 
-    # Wait
+    # Wait for duration
     await asyncio.sleep(seconds)
 
-    # Restore
+    # Restore roles safely
     if member.id in role_backup:
         restored_ids = role_backup.pop(member.id)
         restored_roles = [
@@ -122,15 +125,15 @@ async def timeout(
             await member.add_roles(role)
 
         await interaction.followup.send(
-            "⏱️ Your cooldown has ended."
+            "🖍️ Is je kleurplaat klaar?"
         )
 
-# ---- Ready ----
+# ---- Bot Ready ----
 @bot.event
 async def on_ready():
     print(f"Timeout bot online as {bot.user}")
     await tree.sync()
     print("Slash commands synced.")
 
-# ---- Run ----
+# ---- Run Bot ----
 bot.run(TOKEN)
