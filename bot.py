@@ -61,9 +61,10 @@ load_timeouts()
     tijd="Tijd om te kleuren (bijv. 10m, 1h). Standaard 15m."
 )
 async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
-    await interaction.response.send_message(content="\u200b", ephemeral=True) #minimale response
+    await interaction.response.send_message(content="je bent aan het kleuren voor {seconds//60} minuten", ephemeral=True)
 
     if interaction.guild is None:
+        await interaction.response.send_message(content="/kleurplaat werkt alleen in TEMS.", ephemeral=True)
         logging.warning(f"{interaction.user} probeerde /kleurplaat in DM te gebruiken")
         return
 
@@ -81,6 +82,7 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
 
     # Prevent stacking
     if cooldown_role in member.roles:
+        await interaction.response.send_message(content="Je bent al aan het kleuren.", ephemeral=True)
         logging.info(f"{member} probeert zichzelf opnieuw in kleurplaat te zetten")
         return
 
@@ -143,7 +145,7 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
 # ---- Klaar command ----
 @tree.command(name="klaar", description="Ik wil stoppen met kleuren.")
 async def klaar(interaction: discord.Interaction):
-    await interaction.response.send_message(content="\u200b", ephemeral=True) #minimale response
+    await interaction.response.send_message(content="Je kleurtijd is beeindigd", ephemeral=True)
 
     if interaction.guild is None:
         return
