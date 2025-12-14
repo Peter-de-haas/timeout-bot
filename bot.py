@@ -103,7 +103,7 @@ async def kleurplaat(
         return
 
     await interaction.response.send_message(
-        f"🖍️ Lekker Kleuren voor {seconds // 60} minutes."
+        f"🖍️ Lekker Kleuren voor {seconds // 60} minuten."
     )
 
     # Wait for duration
