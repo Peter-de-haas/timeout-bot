@@ -55,16 +55,50 @@ def save_timeouts():
 
 load_timeouts()
 
+# ---- Timeout release helper ----
+async def release_timeout(member_id: str, guild: discord.Guild):
+    t = timeouts.get(member_id)
+    if not t:
+        return
+
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    if now_ts < t["end_ts"]:
+        # Wacht nog het resterende aantal seconden
+        await asyncio.sleep(t["end_ts"] - now_ts)
+
+    # Rol terugzetten
+    member = guild.get_member(int(member_id))
+    if not member:
+        timeouts.pop(member_id, None)
+        save_timeouts()
+        return
+
+    cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
+    restored_roles = [
+        guild.get_role(rid) for rid in t.get("roles", [])
+        if guild.get_role(rid) and guild.get_role(rid) < guild.me.top_role
+    ]
+
+    if cooldown_role and cooldown_role < guild.me.top_role:
+        await member.remove_roles(cooldown_role)
+    if restored_roles:
+        await member.add_roles(*restored_roles)
+
+    timeouts.pop(member_id, None)
+    save_timeouts()
+    logging.info(f"{member} is automatisch vrijgegeven uit kleurplaat (na reboot)")
+
 # ---- Kleurplaat command ----
 @tree.command(name="kleurplaat", description="Ik wil naar de kleurhoek.")
 @app_commands.describe(
-    tijd="Tijd om te kleuren (bijv. 10m, 1h). Standaard 15m."
+    tijd="Tijd om te kleuren (bijv. 10m, 1h) Standaard 15m."
 )
 async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
-    await interaction.response.send_message(content="je bent aan het kleuren voor {seconds//60} minuten", ephemeral=True)
-
     if interaction.guild is None:
-        await interaction.response.send_message(content="/kleurplaat werkt alleen in TEMS.", ephemeral=True)
+        await interaction.response.send_message(
+            content="🛑 Ik luister alleen in TEMS, gebruik deze command in de server.",
+            ephemeral=True
+        )
         logging.warning(f"{interaction.user} probeerde /kleurplaat in DM te gebruiken")
         return
 
@@ -74,6 +108,10 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
     cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
     if cooldown_role is None:
         logging.error("Cooldown role niet gevonden")
+        await interaction.response.send_message(
+            "Kleurplaat kanaal rol niet gevonden.",
+            ephemeral=True
+        )
         return
 
     seconds = parse_duration(tijd)
@@ -82,7 +120,10 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
 
     # Prevent stacking
     if cooldown_role in member.roles:
-        await interaction.response.send_message(content="Je bent al aan het kleuren.", ephemeral=True)
+        await interaction.response.send_message(
+            content="Je bent al aan het kleuren.",
+            ephemeral=True
+        )
         logging.info(f"{member} probeert zichzelf opnieuw in kleurplaat te zetten")
         return
 
@@ -109,6 +150,12 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
     else:
         skipped_roles.append(cooldown_role.name)
 
+    msg = f"🖍️ Je bent aan het kleuren voor {seconds // 60} minuten."
+    if skipped_roles:
+        msg += f"\n⚠ Kon de volgende rollen niet aanpassen: {', '.join(skipped_roles)}"
+
+    await interaction.response.send_message(content=msg, ephemeral=True)
+
     # Persistent opslaan
     timeouts[str(member.id)] = {
         "end_ts": end_ts,
@@ -117,37 +164,17 @@ async def kleurplaat(interaction: discord.Interaction, tijd: str = "15m"):
     save_timeouts()
     logging.info(f"{member} is aan het kleuren voor {seconds//60} min, skipped: {skipped_roles}")
 
-    # Wait asynchronously
-    async def release():
-        await asyncio.sleep(seconds)
-        # check of member niet vroegtijdig is vrijgegeven
-        t = timeouts.get(str(member.id))
-        if t is None or int(datetime.now(timezone.utc).timestamp()) < t["end_ts"]:
-            return
-
-        restored_ids = t.get("roles", [])
-        restored_roles = [
-            guild.get_role(rid) for rid in restored_ids
-            if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
-        ]
-        if cooldown_role < bot_member.top_role:
-            await member.remove_roles(cooldown_role)
-        if restored_roles:
-            await member.add_roles(*restored_roles)
-
-        # verwijder uit persistent
-        timeouts.pop(str(member.id), None)
-        save_timeouts()
-        logging.info(f"{member} is automatisch vrijgegeven uit kleurplaat")
-
-    asyncio.create_task(release())
+    # Start release task
+    asyncio.create_task(release_timeout(str(member.id), guild))
 
 # ---- Klaar command ----
 @tree.command(name="klaar", description="Ik wil stoppen met kleuren.")
 async def klaar(interaction: discord.Interaction):
-    await interaction.response.send_message(content="Je kleurtijd is beeindigd", ephemeral=True)
-
     if interaction.guild is None:
+        await interaction.response.send_message(
+            content="🛑 Ik luister alleen in TEMS, gebruik deze command in de server.",
+            ephemeral=True
+        )
         return
 
     member = interaction.user
@@ -155,21 +182,32 @@ async def klaar(interaction: discord.Interaction):
     bot_member = guild.me
     cooldown_role = guild.get_role(COOLDOWN_ROLE_ID)
     if cooldown_role not in member.roles:
+        await interaction.response.send_message(
+            content="Je bent helemaal niet aan het kleuren.",
+            ephemeral=True
+        )
         return
 
     t = timeouts.pop(str(member.id), None)
+    restored_roles = []
     if t:
         restored_ids = t.get("roles", [])
         restored_roles = [
             guild.get_role(rid) for rid in restored_ids
             if guild.get_role(rid) and guild.get_role(rid) < bot_member.top_role
         ]
-        if cooldown_role < bot_member.top_role:
-            await member.remove_roles(cooldown_role)
-        if restored_roles:
-            await member.add_roles(*restored_roles)
-        save_timeouts()
-        logging.info(f"{member} heeft zichzelf vervroegd vrijgegeven uit kleurplaat")
+
+    if cooldown_role < bot_member.top_role:
+        await member.remove_roles(cooldown_role)
+    if restored_roles:
+        await member.add_roles(*restored_roles)
+
+    save_timeouts()
+    logging.info(f"{member} heeft zichzelf vervroegd vrijgegeven uit kleurplaat")
+    await interaction.response.send_message(
+        content="🖍️ Jouw kleurtijd is vervroegd afgelopen.",
+        ephemeral=True
+    )
 
 # ---- On Ready ----
 @bot.event
@@ -177,6 +215,15 @@ async def on_ready():
     logging.info(f"Kleurplaat bot online als {bot.user}")
     await tree.sync()
     logging.info("Slash commands gesynchroniseerd")
+
+    # Herstel actieve timeouts bij bot start
+    for member_id, t in timeouts.copy().items():
+        guilds = bot.guilds
+        for guild in guilds:
+            member = guild.get_member(int(member_id))
+            if member:
+                asyncio.create_task(release_timeout(member_id, guild))
+                logging.info(f"Herstel actieve kleurplaat voor {member}")
 
 # ---- Run ----
 bot.run(TOKEN)
