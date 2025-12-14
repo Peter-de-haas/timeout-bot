@@ -40,11 +40,11 @@ def parse_duration(duration: str) -> int:
 # ---- Self-timeout command ----
 @tree.command(name="timeout", description="Put yourself in cooldown")
 @app_commands.describe(
-    duration="Duration (e.g. 10m, 1h). Defaults to 1h"
+    duration="Duration (e.g. 10m, 1h). Defaults to 15 minutes"
 )
 async def timeout(
     interaction: discord.Interaction,
-    duration: str = "1h"
+    duration: str = "15m"
 ):
     # Must be used in a server
     if interaction.guild is None:
